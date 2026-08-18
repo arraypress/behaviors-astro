@@ -1,0 +1,56 @@
+{
+  "name": "@arraypress/astro-behaviors",
+  "version": "1.0.0",
+  "description": "Client-side behaviour modules for Astro storefronts — wishlist, header nav, modals, product gallery, count-up and drag-scroll. View-transition safe, zero dependencies, no styling opinions.",
+  "type": "module",
+  "exports": {
+    "./brand-colors": "./src/brand-colors.ts",
+    "./card-actions": "./src/card-actions.ts",
+    "./header-nav": "./src/header-nav.ts",
+    "./modal": "./src/modal.ts",
+    "./page-behaviors": "./src/page-behaviors.ts",
+    "./product-gallery": "./src/product-gallery.ts",
+    "./upsell-modal": "./src/upsell-modal.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "astro",
+    "astro-component",
+    "view-transitions",
+    "wishlist",
+    "modal",
+    "gallery",
+    "storefront",
+    "behaviors"
+  ],
+  "author": "David Sherlock",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arraypress/astro-behaviors.git"
+  },
+  "peerDependencies": {
+    "astro": "^6.0.0 || ^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "astro": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
