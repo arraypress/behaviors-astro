@@ -1,5 +1,5 @@
 {
-  "name": "@arraypress/astro-behaviors",
+  "name": "@arraypress/behaviors-astro",
   "version": "1.0.0",
   "description": "Client-side behaviour modules for Astro storefronts — wishlist, header nav, modals, product gallery, count-up and drag-scroll. View-transition safe, zero dependencies, no styling opinions.",
   "type": "module",
@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arraypress/astro-behaviors.git"
+    "url": "git+https://github.com/arraypress/behaviors-astro.git"
   },
   "peerDependencies": {
     "astro": "^6.0.0 || ^7.0.0"

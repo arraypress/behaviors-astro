@@ -1,4 +1,4 @@
-# @arraypress/astro-behaviors
+# @arraypress/behaviors-astro
 
 > Client-side behaviour modules for Astro storefronts — wishlist, header nav, modals, product gallery, count-up and drag-scroll. View-transition safe, zero dependencies, no styling opinions.
 
@@ -14,7 +14,7 @@ and class names; the styling stays in your theme. Same contract as
 ## Install
 
 ```bash
-npm install @arraypress/astro-behaviors
+npm install @arraypress/behaviors-astro
 ```
 
 ## Usage
@@ -26,9 +26,9 @@ Import the ones you need from a `<script>` in your layout:
 // src/layouts/Layout.astro
 ---
 <script>
-  import '@arraypress/astro-behaviors/header-nav';
-  import '@arraypress/astro-behaviors/page-behaviors';
-  import '@arraypress/astro-behaviors/modal';
+  import '@arraypress/behaviors-astro/header-nav';
+  import '@arraypress/behaviors-astro/page-behaviors';
+  import '@arraypress/behaviors-astro/modal';
 </script>
 ```
 
