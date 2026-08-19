@@ -75,6 +75,25 @@ The cost of that duplication wasn't the copying, it was the drift: a keyboard
 accessibility fix landing in one theme and never reaching its siblings. Sharing
 the behaviour makes that a single fix.
 
+## Tests
+
+```bash
+npm test
+```
+
+69 tests across the seven modules, run under jsdom with `node --test`.
+
+Two things the harness has to supply, because jsdom lacks them and the modules
+genuinely depend on them: `IntersectionObserver` (count-up) and
+`HTMLDialogElement.showModal()` (the modals and the gallery lightbox). Both
+stubs are deliberately minimal, so a test cannot pass because the stub was more
+generous than a browser.
+
+It also owns the animation clock. jsdom's `requestAnimationFrame` timestamps
+run on a different origin from its `performance.now()` — measurably negative
+against it — so the count-up would compute a negative elapsed time and render
+negative numbers. The harness serves both readings from one clock.
+
 ## License
 
 MIT

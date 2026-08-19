@@ -20,7 +20,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/*.test.js"
   },
   "keywords": [
     "astro",
@@ -51,6 +52,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "jsdom": "^27.4.0",
     "typescript": "^5.9.0"
   }
 }
