@@ -1,6 +1,6 @@
 {
   "name": "@arraypress/behaviors-astro",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Client-side behaviour modules for Astro storefronts — wishlist, header nav, modals, product gallery, count-up and drag-scroll. View-transition safe, zero dependencies, no styling opinions.",
   "type": "module",
   "exports": {
@@ -30,6 +30,8 @@
     "wishlist",
     "modal",
     "gallery",
+    "carousel",
+    "count-up",
     "storefront",
     "behaviors"
   ],

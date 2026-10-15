@@ -10,8 +10,10 @@
  *   2. Node caches ES modules by specifier, so a second import of the same
  *      path is a no-op and the listeners never rebind. Each `load()` appends a
  *      unique query string to defeat that — every test gets a clean module.
- *   3. jsdom is missing two APIs these modules rely on, so we supply them
- *      rather than skip the tests that need them. Both stubs are deliberately
+ *      Files the entry imports (`count-up.ts`, `drag-scroll.ts`) stay cached;
+ *      they read the globals at call time and reset their state on each init.
+ *   3. jsdom is missing three APIs these modules rely on, so we supply them
+ *      rather than skip the tests that need them. The stubs are deliberately
  *      minimal and are asserted against directly, so a test can't pass because
  *      the stub was too generous.
  */
@@ -63,6 +65,20 @@ function installIntersectionObserver(win) {
 }
 
 /**
+ * `matchMedia`, which jsdom lacks. Only `prefers-reduced-motion` is asked
+ * for (by count-up and drag-scroll), so the stub answers that one query from
+ * the `reducedMotion` option and nothing else matches.
+ */
+function installMatchMedia(win, reducedMotion) {
+	win.matchMedia = (query) => ({
+		media: query,
+		matches: reducedMotion && /prefers-reduced-motion:\s*reduce/.test(query),
+		addEventListener() {},
+		removeEventListener() {},
+	});
+}
+
+/**
  * `<dialog>` support. jsdom implements the element but not `showModal()` /
  * `close()`, which is exactly the API `modal`, `product-gallery` and
  * `upsell-modal` drive. Track state through the `open` property so assertions
@@ -92,10 +108,12 @@ function installDialog(win) {
  * @param {string} [options.url='https://example.com/'] - Document URL. Matters
  *   for `card-actions`, which only records a view on `/products/<slug>`.
  * @param {Object} [options.storage] - Seed values for localStorage.
+ * @param {boolean} [options.reducedMotion=false] - Whether
+ *   `prefers-reduced-motion: reduce` matches.
  * @returns {Promise<{window: Window, document: Document, toasts: Array, navigations: Array}>}
  */
 export async function load(module, options = {}) {
-	const { html = '', url = 'https://example.com/', storage = {} } = options;
+	const { html = '', url = 'https://example.com/', storage = {}, reducedMotion = false } = options;
 
 	if (previous) {
 		try { previous.close(); } catch { /* already torn down */ }
@@ -120,6 +138,7 @@ export async function load(module, options = {}) {
 
 	installIntersectionObserver(win);
 	installDialog(win);
+	installMatchMedia(win, reducedMotion);
 
 	for (const [k, v] of Object.entries(storage)) win.localStorage.setItem(k, v);
 
@@ -136,7 +155,8 @@ export async function load(module, options = {}) {
 		'window', 'document', 'navigator', 'location', 'localStorage',
 		'HTMLElement', 'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent',
 		'IntersectionObserver', 'requestAnimationFrame', 'cancelAnimationFrame',
-		'getComputedStyle', 'HTMLDialogElement',
+		'getComputedStyle', 'HTMLDialogElement', 'HTMLButtonElement',
+		'MutationObserver', 'PointerEvent', 'matchMedia',
 	]) {
 		const value = k === 'window' ? win : win[k];
 		if (value === undefined) continue;
