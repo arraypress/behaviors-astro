@@ -26,6 +26,17 @@
  * DOM contract (data-* attributes this module binds):
  *   - `[data-wishlist-toggle]`            — heart button; toggles wishlist
  *   - `[data-product-slug]`               — slug carried on the toggle
+ *   - `[data-wishlist-label-add]`         — optional; icon-only toggle's
+ *                                           name while not saved
+ *   - `[data-wishlist-label-remove]`      — optional; icon-only toggle's
+ *                                           name while saved
+ *
+ * Accessible name (WCAG 2.5.3, label in name): every toggle gets
+ * `aria-pressed`. An icon-only toggle is also given an `aria-label` that
+ * follows the state ("Add to wishlist" / "Remove from wishlist", or the
+ * two `data-wishlist-label-*` values). A toggle with text of its own
+ * ("Save" / "Saved") is named by that text, so any `aria-label` on it is
+ * removed — a label that replaced the visible words would fail 2.5.3.
  *   - `[data-wishlist-trigger]`           — header shortcut anchor; gains
  *                                           `.has-items` when count > 0
  *   - `[data-wishlist-count]`             — badge child of the trigger;
@@ -44,6 +55,8 @@ declare global {
 const KEY_WISHLIST = 'wg-wishlist';
 const KEY_VIEWED = 'wg-recently-viewed';
 const MAX_VIEWED = 12;
+const LABEL_ADD = 'Add to wishlist';
+const LABEL_REMOVE = 'Remove from wishlist';
 
 /* ───── LocalStorage helpers ───── */
 
@@ -83,6 +96,25 @@ function writeArray(key: string, arr: string[]): void {
 
 /* ───── Wishlist visual state ───── */
 
+/**
+ * Whether a toggle carries text of its own — any non-blank text not inside an
+ * `aria-hidden="true"` or `hidden` element within it. CSS-hidden text (a "Saved" span
+ * shown only while active) still counts: the toggle is a text button either
+ * way, and the browser names it from whichever span is displayed.
+ */
+function hasOwnText(node: Node): boolean {
+	for (const child of Array.from(node.childNodes)) {
+		if (child.nodeType === child.TEXT_NODE) {
+			if (child.textContent?.trim()) return true;
+		} else if (child.nodeType === child.ELEMENT_NODE) {
+			const el = child as Element;
+			if (el.getAttribute('aria-hidden') === 'true' || el.hasAttribute('hidden')) continue;
+			if (hasOwnText(el)) return true;
+		}
+	}
+	return false;
+}
+
 function syncWishlistState(): void {
 	const wishlist = readSet(KEY_WISHLIST);
 	document.querySelectorAll<HTMLElement>('[data-wishlist-toggle]').forEach((btn) => {
@@ -90,7 +122,13 @@ function syncWishlistState(): void {
 		const isIn = slug !== undefined && wishlist.has(slug);
 		btn.classList.toggle('is-active', isIn);
 		btn.setAttribute('aria-pressed', isIn ? 'true' : 'false');
-		btn.setAttribute('aria-label', isIn ? 'Remove from wishlist' : 'Add to wishlist');
+		if (hasOwnText(btn)) {
+			btn.removeAttribute('aria-label');
+		} else {
+			const add = btn.dataset.wishlistLabelAdd || LABEL_ADD;
+			const remove = btn.dataset.wishlistLabelRemove || LABEL_REMOVE;
+			btn.setAttribute('aria-label', isIn ? remove : add);
+		}
 	});
 
 	/* Header shortcut badge — the `<a data-wishlist-trigger>` in

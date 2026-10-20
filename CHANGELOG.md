@@ -5,6 +5,32 @@ All notable changes to `@arraypress/behaviors-astro` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-10-21
+
+Backwards compatible for icon-only wishlist toggles: their `aria-label`,
+`aria-pressed` and `.is-active` are exactly 1.1's.
+
+### Added
+
+- `data-wishlist-label-add` / `data-wishlist-label-remove` on an icon-only
+  wishlist toggle set its `aria-label` for each state, for translation or
+  wording. Without them the labels are 1.1's, "Add to wishlist" and "Remove
+  from wishlist".
+
+### Changed
+
+- A wishlist toggle with text of its own ("Save" / "Saved") no longer gets an
+  `aria-label`, and any `aria-label` already on it is removed, so the visible
+  text is its accessible name. Its state stays on `aria-pressed`. Text inside
+  an `aria-hidden="true"` or `hidden` element doesn't count as its own.
+
+### Fixed
+
+- WCAG 2.5.3 (label in name): the module overwrote every toggle's
+  `aria-label` with "Add to wishlist" / "Remove from wishlist", so a button
+  that read "Save" was announced as something else and a speech-input user
+  saying "click Save" could not reach it (axe `label-content-name-mismatch`).
+
 ## [1.1.0] — 2026-10-15
 
 Backwards compatible: every 1.0 selector, attribute and output is unchanged.

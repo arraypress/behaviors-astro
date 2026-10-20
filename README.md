@@ -43,7 +43,7 @@ from the page instead.
 | `…/header-nav` | Mega-menu / dropdown runtime for the primary nav row (Classic, Centered and Split header variants). |
 | `…/page-behaviors` | Cross-cutting page behaviour: count-up on `.count-up[data-target]` via IntersectionObserver, and drag-to-scroll on horizontal carousels. See [Count-up](#count-up) and [Drag-to-scroll](#drag-to-scroll). |
 | `…/modal` | Generic open/close wiring for native `<dialog>` modals, via a single delegated click handler. |
-| `…/card-actions` | Wishlist toggle on `[data-wishlist-toggle]`, plus recently-viewed tracking. Fires a toast if `window.toast` exists. |
+| `…/card-actions` | Wishlist toggle on `[data-wishlist-toggle]`, plus recently-viewed tracking. Fires a toast if `window.toast` exists. See [Wishlist](#wishlist). |
 | `…/product-gallery` | Product detail gallery — thumbnail swap plus a native-`<dialog>` lightbox. |
 | `…/upsell-modal` | One-step upsell prompt, triggered from a Buy button and remembered in `localStorage`. |
 | `…/brand-colors` | Copy-hex-to-clipboard on a brand-colour swatch grid. |
@@ -121,6 +121,45 @@ Only the primary mouse button drags; touch and pens keep the browser's own
 scrolling. With `prefers-reduced-motion: reduce` there is no throw and the
 prev/next controls jump instead of gliding. Right-to-left tracks are handled.
 
+### Wishlist
+
+Any `[data-wishlist-toggle]` with a `data-product-slug` saves that slug on
+click. On every page load the module marks saved toggles with `.is-active`
+and `aria-pressed="true"`, and keeps the header badge in step.
+
+```html
+<!-- Icon-only: the module names it, following the state -->
+<button type="button" data-wishlist-toggle data-product-slug="pads-vol-2">
+  <svg aria-hidden="true">…</svg>
+</button>
+
+<!-- With visible text: the text is the name -->
+<button type="button" data-wishlist-toggle data-product-slug="pads-vol-2">
+  <svg aria-hidden="true">…</svg>
+  <span class="label-add">Save</span>
+  <span class="label-remove">Saved</span>
+</button>
+```
+
+| Attribute | On | |
+|---|---|---|
+| `data-wishlist-toggle` | the toggle | **Required.** |
+| `data-product-slug` | the toggle | **Required.** What gets saved. |
+| `data-wishlist-label-add` | an icon-only toggle | Its `aria-label` while not saved. Default `Add to wishlist`. *1.2* |
+| `data-wishlist-label-remove` | an icon-only toggle | Its `aria-label` while saved. Default `Remove from wishlist`. *1.2* |
+| `data-wishlist-trigger` | the header link | Gains `.has-items` while anything is saved. |
+| `data-wishlist-count` | inside the trigger | Shows the count (capped at `99+`), `hidden` at zero. |
+
+**The accessible name follows WCAG 2.5.3 (label in name).** A toggle with
+text of its own is named by that text: the module removes any `aria-label`
+from it, because a label such as "Add to wishlist" on a button that reads
+"Save" replaces the words a speech-input user would say (axe
+`label-content-name-mismatch`). Its state is carried by `aria-pressed`. Text
+inside an `aria-hidden="true"` or `hidden` element doesn't count, so a toggle
+whose only text is a hidden glyph is still icon-only. Text hidden with CSS
+does count — show "Save" or "Saved" from `.is-active` and the browser names
+the toggle from whichever is displayed.
+
 ### Soft dependency on toast
 
 `card-actions` calls `window.toast()` when a wishlist toggle succeeds, and
@@ -154,7 +193,7 @@ the behaviour makes that a single fix.
 npm test
 ```
 
-123 tests across the seven modules and their pure helpers (number formatting,
+131 tests across the seven modules and their pure helpers (number formatting,
 the drag-scroll throw, edge and paging maths), run under jsdom with
 `node --test`.
 

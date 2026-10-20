@@ -70,6 +70,98 @@ describe('card-actions — wishlist toggle', () => {
 	});
 });
 
+/* WCAG 2.5.3 (label in name): a control's accessible name must contain its
+ * visible text. An aria-label overrides the text, so a "Save" button labelled
+ * "Add to wishlist" fails (axe `label-content-name-mismatch`). Icon-only
+ * toggles have no visible text and keep a state-following aria-label. */
+const TEXT_TOGGLE = (slug) => `
+  <button data-wishlist-toggle data-product-slug="${slug}" aria-label="Add to wishlist">
+    <svg aria-hidden="true"><path d="M0 0"/></svg>
+    <span class="add">Save</span>
+    <span class="remove">Saved</span>
+  </button>`;
+
+describe('card-actions — accessible name', () => {
+	it('names an icon-only toggle by its state, as before', async () => {
+		const { document } = await load('card-actions', { html: CARD('a') });
+		ready(document);
+		const btn = document.querySelector('[data-wishlist-toggle]');
+		assert.equal(btn.getAttribute('aria-label'), 'Add to wishlist');
+		click(btn);
+		assert.equal(btn.getAttribute('aria-label'), 'Remove from wishlist');
+		assert.equal(btn.getAttribute('aria-pressed'), 'true');
+	});
+
+	it('takes an icon-only toggle\'s labels from data-wishlist-label-*', async () => {
+		const { document } = await load('card-actions', {
+			html: '<button data-wishlist-toggle data-product-slug="a" data-wishlist-label-add="Merken" data-wishlist-label-remove="Nicht mehr merken"></button>',
+		});
+		ready(document);
+		const btn = document.querySelector('[data-wishlist-toggle]');
+		assert.equal(btn.getAttribute('aria-label'), 'Merken');
+		click(btn);
+		assert.equal(btn.getAttribute('aria-label'), 'Nicht mehr merken');
+	});
+
+	it('falls back to the default for an empty label attribute', async () => {
+		const { document } = await load('card-actions', {
+			html: '<button data-wishlist-toggle data-product-slug="a" data-wishlist-label-add=""></button>',
+		});
+		ready(document);
+		assert.equal(document.querySelector('[data-wishlist-toggle]').getAttribute('aria-label'), 'Add to wishlist');
+	});
+
+	it('removes aria-label from a toggle with visible text, so the text names it', async () => {
+		const { document } = await load('card-actions', { html: TEXT_TOGGLE('a') });
+		ready(document);
+		const btn = document.querySelector('[data-wishlist-toggle]');
+		assert.equal(btn.hasAttribute('aria-label'), false);
+		assert.equal(btn.getAttribute('aria-pressed'), 'false');
+	});
+
+	it('never writes an aria-label onto a text toggle as its state changes', async () => {
+		const { document } = await load('card-actions', {
+			html: TEXT_TOGGLE('a'),
+			storage: { 'wg-wishlist': JSON.stringify(['a']) },
+		});
+		ready(document);
+		const btn = document.querySelector('[data-wishlist-toggle]');
+		assert.equal(btn.getAttribute('aria-pressed'), 'true');
+		assert.equal(btn.hasAttribute('aria-label'), false);
+		click(btn);
+		assert.equal(btn.getAttribute('aria-pressed'), 'false');
+		assert.equal(btn.hasAttribute('aria-label'), false);
+	});
+
+	it('ignores configured labels on a text toggle', async () => {
+		const { document } = await load('card-actions', {
+			html: '<button data-wishlist-toggle data-product-slug="a" data-wishlist-label-add="Add">Save</button>',
+		});
+		ready(document);
+		assert.equal(document.querySelector('[data-wishlist-toggle]').hasAttribute('aria-label'), false);
+	});
+
+	/* Text the user can't see doesn't make a visible label: an aria-hidden
+	 * glyph or a `hidden` span leaves the toggle icon-only. */
+	it('treats aria-hidden and hidden text as no text', async () => {
+		const { document } = await load('card-actions', {
+			html: '<button data-wishlist-toggle data-product-slug="a"><span aria-hidden="true">♥</span><span hidden>Saved</span>  </button>',
+		});
+		ready(document);
+		assert.equal(document.querySelector('[data-wishlist-toggle]').getAttribute('aria-label'), 'Add to wishlist');
+	});
+
+	/* The toggle can sit inside an aria-hidden region (a closed modal). That
+	 * hides the whole control, not its text, so it is still a text toggle. */
+	it('looks for hiding only inside the toggle itself', async () => {
+		const { document } = await load('card-actions', {
+			html: `<div aria-hidden="true">${TEXT_TOGGLE('a')}</div>`,
+		});
+		ready(document);
+		assert.equal(document.querySelector('[data-wishlist-toggle]').hasAttribute('aria-label'), false);
+	});
+});
+
 describe('card-actions — header badge', () => {
 	it('shows the count and marks the trigger when items are saved', async () => {
 		const { document } = await load('card-actions', {
