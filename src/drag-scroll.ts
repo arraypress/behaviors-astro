@@ -6,7 +6,8 @@
  *
  * Touch, trackpads and the keyboard scroll a track natively. A mouse can also
  * press, hold and drag it: it follows the hand, and on release it is thrown on
- * by the drag's speed, then the browser's own scroll-snap settles it. The click
+ * by the drag's speed and settles on the next card in the direction it was
+ * dragged (a short drag is enough — `settleTarget`), then snap comes back. The click
  * that ends a drag is swallowed, so dragging across a card doesn't open it.
  *
  * While it can scroll back the track carries `data-start`, and while it can
@@ -32,6 +33,17 @@ const IDLE_MS = 100;
 
 /** A prev/next control pages by this share of the visible width. */
 const PAGE_SHARE = 0.8;
+
+/**
+ * CSS px a released drag must have moved for the track to settle on the next
+ * card in that direction. Without this, `mandatory` snap pulls a slow drag back
+ * to the card it started on unless it passed the halfway point — the "you have
+ * to drag it really far" feel.
+ */
+const NUDGE_PX = 24;
+
+/** Longest wait (ms) for a settle glide to finish before snap comes back anyway. */
+const SETTLE_MS = 700;
 
 /** A track carries its one-time init flag and its edge updater. */
 interface DragScrollElement extends HTMLElement {
@@ -70,6 +82,56 @@ export function throwDistance(speed: number, idle: number): number {
 	if (idle > IDLE_MS) return 0;
 	const distance = -speed * THROW_MS;
 	return Math.abs(distance) < 1 ? 0 : distance;
+}
+
+/**
+ * Where a released drag should come to rest: the first snap point beyond the
+ * landing spot in the direction of travel, so a drag of a few px is enough to
+ * move on one card and a long or thrown drag moves on as far as it went.
+ *
+ * @param targets The track's snap points, scroll px, ascending.
+ * @param from Where the drag started, scroll px.
+ * @param landing Where it would land (position at release plus any throw), scroll px.
+ * @param nudge Minimum travel before it counts as a move, px.
+ * @returns The scroll position to settle on, or null to let the browser's snap decide.
+ */
+export function settleTarget(targets: number[], from: number, landing: number, nudge = NUDGE_PX): number | null {
+	const travel = landing - from;
+	if (!targets.length || Math.abs(travel) < nudge) return null;
+	if (travel > 0) {
+		const ahead = targets.filter((t) => t > from + 1);
+		if (!ahead.length) return null;
+		return ahead.find((t) => t >= landing - 1) ?? ahead[ahead.length - 1];
+	}
+	const behind = targets.filter((t) => t < from - 1).reverse();
+	if (!behind.length) return null;
+	return behind.find((t) => t <= landing + 1) ?? behind[behind.length - 1];
+}
+
+/**
+ * A track's snap points in scroll px, from its children's `scroll-snap-align`
+ * (start / center / end) and the track's `scroll-padding-left`, clamped to the
+ * scrollable range. Empty when nothing in it snaps.
+ *
+ * @param track The track (left-to-right).
+ * @returns Snap positions, ascending, de-duplicated.
+ */
+function snapPoints(track: HTMLElement): number[] {
+	const box = track.getBoundingClientRect();
+	const max = track.scrollWidth - track.clientWidth;
+	const pad = parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
+	const out = new Set<number>();
+	for (const child of Array.from(track.children) as HTMLElement[]) {
+		const align = getComputedStyle(child).scrollSnapAlign.split(' ').pop();
+		if (!align || align === 'none') continue;
+		const r = child.getBoundingClientRect();
+		const left = r.left - box.left + track.scrollLeft;
+		const pos = align === 'center' ? left + r.width / 2 - track.clientWidth / 2
+			: align === 'end' ? left + r.width - track.clientWidth
+			: left - pad;
+		out.add(Math.round(Math.min(max, Math.max(0, pos))));
+	}
+	return [...out].sort((a, b) => a - b);
 }
 
 /**
@@ -262,7 +324,7 @@ function wire(track: DragScrollElement): void {
 		activated = false;
 		track.style.cursor = 'grab';
 		document.body.style.userSelect = '';
-		track.style.scrollSnapType = '';
+		if (!wasActivated) track.style.scrollSnapType = '';
 		if (e.pointerId != null) {
 			try {
 				track.releasePointerCapture?.(e.pointerId);
@@ -276,8 +338,25 @@ function wire(track: DragScrollElement): void {
 		setTimeout(() => {
 			swallow = false;
 		}, 0);
-		const left = throwDistance(speed, e.timeStamp - lastAt);
-		if (left && !prefersReducedMotion()) scrollTrack(track, left);
+		const thrown = prefersReducedMotion() ? 0 : throwDistance(speed, e.timeStamp - lastAt);
+		const rtl = getComputedStyle(track).direction === 'rtl';
+		const target = rtl ? null : settleTarget(snapPoints(track), startScroll, track.scrollLeft + thrown);
+		if (target === null) {
+			track.style.scrollSnapType = '';
+			if (thrown) scrollTrack(track, thrown);
+			return;
+		}
+		/* Glide to the next card in the drag's direction with snap still off
+		 * (snap would pull it back), then hand snap back once it arrives. */
+		const restore = (): void => {
+			track.style.scrollSnapType = '';
+			track.removeEventListener('scrollend', restore);
+		};
+		track.addEventListener('scrollend', restore);
+		setTimeout(restore, SETTLE_MS);
+		const behavior: ScrollBehavior = prefersReducedMotion() ? 'auto' : 'smooth';
+		if (typeof track.scrollTo === 'function') track.scrollTo({ left: target, behavior });
+		else track.scrollLeft = target;
 	};
 
 	/**

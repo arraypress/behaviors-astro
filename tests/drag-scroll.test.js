@@ -6,7 +6,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { smoothSpeed, throwDistance, scrollEdges, pageDistance } from '../src/drag-scroll.ts';
+import { smoothSpeed, throwDistance, scrollEdges, pageDistance, settleTarget } from '../src/drag-scroll.ts';
 
 describe('drag-scroll — speed', () => {
 	it('weights the latest move over the running speed', () => {
@@ -69,5 +69,33 @@ describe('drag-scroll — paging', () => {
 	it('flips in right-to-left layouts', () => {
 		assert.equal(pageDistance(500, 'next', true), -400);
 		assert.equal(pageDistance(500, 'prev', true), 400);
+	});
+});
+
+describe('drag-scroll — settle', () => {
+	const cards = [0, 300, 600, 900];
+
+	it('moves on one card after a short, slow drag (no need to pass halfway)', () => {
+		assert.equal(settleTarget(cards, 0, 40), 300);
+		assert.equal(settleTarget(cards, 600, 560), 300);
+	});
+
+	it('leaves a tiny wobble to the browser snap', () => {
+		assert.equal(settleTarget(cards, 300, 310), null);
+		assert.equal(settleTarget(cards, 300, 290), null);
+	});
+
+	it('moves as far as a long or thrown drag went, in its direction', () => {
+		assert.equal(settleTarget(cards, 0, 640), 900);
+		assert.equal(settleTarget(cards, 900, 250), 0);
+	});
+
+	it('stays put at the ends', () => {
+		assert.equal(settleTarget(cards, 900, 980), null);
+		assert.equal(settleTarget(cards, 0, -60), null);
+	});
+
+	it('does nothing without snap points', () => {
+		assert.equal(settleTarget([], 0, 200), null);
 	});
 });

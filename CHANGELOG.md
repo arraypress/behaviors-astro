@@ -5,6 +5,18 @@ All notable changes to `@arraypress/behaviors-astro` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-10-21
+
+### Fixed
+
+- **Drag-to-scroll settles in the direction you dragged.** With `mandatory`
+  scroll-snap, a slow mouse drag that hadn't passed the halfway point was pulled
+  back to the card it started on, so a carousel felt like it needed dragging
+  "really far". A release that moved at least 24px now glides to the next snap
+  point in that direction (or as far as a long/thrown drag went), with snap held
+  off until it arrives (`scrollend`, 700ms fallback). New pure helper
+  `settleTarget()`; right-to-left tracks keep the old behaviour.
+
 ## [1.2.0] — 2026-10-21
 
 Backwards compatible for icon-only wishlist toggles: their `aria-label`,
